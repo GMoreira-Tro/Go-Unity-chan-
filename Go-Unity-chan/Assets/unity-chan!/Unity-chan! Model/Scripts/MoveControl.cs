@@ -15,6 +15,7 @@ public class MoveControl : MonoBehaviour
     float direction;
     bool jump;
     bool back;
+    bool flipDirect;
     void Start()
     {
         
@@ -27,39 +28,51 @@ public class MoveControl : MonoBehaviour
             animator.SetBool("Jump", true);
 
         move = Input.GetAxis("Vertical") * MoveSpeed;
-        //direction = Input.GetAxis("Horizontal") * RotateSpeed;
-        float angleY = transform.rotation.y * 180f;
+        direction = Input.GetAxis("Horizontal") * RotateSpeed;
+        float angleYDeg = 180 - Mathf.Acos(transform.rotation.y) * Mathf.Rad2Deg * 2;
+
+        //Debug.Log(angleYDeg);
+        if (flipDirect)
+        {
+            flipDirect = false;
+        }
+        float angleYRad = angleYDeg * Mathf.Deg2Rad;
         //Anda pra direção apontada
         if (Mathf.Abs(move) > 0.15f)
         {
-            transform.localPosition = new Vector3(transform.position.x +  Mathf.Sin(angleY * Mathf.Deg2Rad) *MoveSpeed/50f
+            transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) *MoveSpeed/50f
                 , transform.position.y,
-                transform.position.z + Mathf.Cos(angleY * Mathf.Deg2Rad) *MoveSpeed / 50f);
+                transform.position.z + Mathf.Cos(angleYRad) *MoveSpeed / 50f);
         }
 
         //Rotaciona
-        Debug.Log(transform.rotation.y + " - " + direction);
-        transform.localRotation = Quaternion.Euler(transform.position.x, transform.position.y - 5, transform.position.z);
+        transform.Rotate(0, direction, 0);
 
         //Verifica se a personagem deve virar de costas
-        if (move < 0 && !back)
+        if (move < -0.15f && !back)
         {
-            transform.localRotation = Quaternion.Euler(transform.rotation.x, transform.rotation.y*180 - 180, transform.rotation.z);
+            transform.Rotate(0, 180, 0);
             back = true;
+            flipDirect = true;
         }
             
         else if (move > 0.15f && back)
         {
-            transform.localRotation = Quaternion.Euler(transform.rotation.x, transform.rotation.y*180 + 180, transform.rotation.z);
+            transform.Rotate(0, 180, 0);
             back = false;
+            flipDirect = true;
         }
 
-        //Seta a velocidade pelo eixo vertical e a direção pelo eixo horizontal
+        //Seta a velocidade pelo eixo vertical
         animator.SetFloat("Speed", Mathf.Abs(move));
-        animator.SetFloat("Direction", direction);
 
         //Se os dois pés colidiram, para de pular
         if (rightFoot.isTrigger && leftFoot.isTrigger)
             animator.SetBool("Jump", false);
+    }
+
+    void flip()
+    {
+
     }
 }

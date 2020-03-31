@@ -11,7 +11,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{64265F1B-8346-AB41-AB48-322A246E2260}</ProjectGuid>
+    <ProjectGuid>{9511061C-3463-7552-7AA7-78BD9F351CD6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -88,31 +88,31 @@
     <None Include="Assets\unity-chan!\Unity-chan! Model\Art\UnityChanShader\Shader\Unitychan_chara_hair.shader" />
     <None Include="Assets\unity-chan!\Unity-chan! Model\Art\UnityChanShader\Shader\Unitychan_chara_eye_blend.shader" />
     <Reference Include="Unity.Timeline.Editor">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VSCode.Editor">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro.Editor">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Timeline">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
     </Reference>
     <Reference Include="Unity.CollabProxy.Editor">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Rider.Editor">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.UI">
-      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Testes/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+      <HintPath>C:/Users/RyuzakiTro/Desktop/Go-Unity-chan-/Go-Unity-chan/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AIModule">
       <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.5f1/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>
