@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MoveControl : MonoBehaviour
 {
-    public CharacterController controller;
+    public Transform camera;
     public Animator animator;
     public float moveSpeed = 1.5f;
     public float rotateSpeed = 5f;
@@ -13,14 +13,12 @@ public class MoveControl : MonoBehaviour
     float move;
     float physicalMovement;
     float direction;
-    bool jump;
     bool back;
     bool isGrounded;
 
     private Rigidbody rigidbody;
     void Start()
     {
-        physicalMovement = moveSpeed / 50f;
         rigidbody = GetComponent<Rigidbody>();
     }
 
@@ -41,6 +39,10 @@ public class MoveControl : MonoBehaviour
         //Anda pra direção apontada
         if (Mathf.Abs(move) > 0.15f)
         {
+            if (animator.GetBool("Jump"))
+                physicalMovement = moveSpeed / 200f;
+            else
+                physicalMovement = moveSpeed / 50f;
             transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
                 , transform.position.y,
                 transform.position.z + Mathf.Cos(angleYRad) * physicalMovement);
