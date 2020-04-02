@@ -1,10 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class MoveControl : MonoBehaviour
 {
     public Transform camera;
+    public float cameraHorizontalSpeed;
+    public float cameraVerticalSpeed;
     public Animator animator;
     public float moveSpeed = 1.5f;
     public float rotateSpeed = 5f;
@@ -13,34 +13,29 @@ public class MoveControl : MonoBehaviour
     float move;
     float physicalMovement;
     float direction;
-    bool back;
+    float angleYDeg;
+    float angleYRad;
+    bool canFlip = true;
     bool isGrounded;
 
     private Rigidbody rigidbody;
+    private float cameraPitch;
+    private float cameraYaw;
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
+        cameraPitch = 0;
+        cameraYaw = 180;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (isGrounded && Input.GetKeyDown("space"))
-        {
-            animator.SetBool("Jump", true);
-            rigidbody.AddForce(Vector3.up * jumpForce);
-        }
-
-        move = Input.GetAxis("Vertical") * moveSpeed;
-        direction = Input.GetAxis("Horizontal") * rotateSpeed;
-        float angleYDeg = transform.eulerAngles.y;
-        float angleYRad = angleYDeg * Mathf.Deg2Rad;
-
         //Anda pra direção apontada
         if (Mathf.Abs(move) > 0.15f)
         {
             if (animator.GetBool("Jump"))
-                physicalMovement = moveSpeed / 200f;
+                physicalMovement = moveSpeed / 100f;
             else
                 physicalMovement = moveSpeed / 50f;
             transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
@@ -49,24 +44,54 @@ public class MoveControl : MonoBehaviour
         }
 
         //Rotaciona
-        transform.Rotate(0, direction, 0);
+        cameraYaw += direction;
 
         //Verifica se a personagem deve virar de costas
-        if (move < -0.15f && !back)
-        {
-            transform.Rotate(0, -180, 0);
-            back = true;
-        }
-
-        else if (move > 0.15f && back)
-        {
-            transform.Rotate(0, 180, 0);
-            back = false;
-        }
+        
 
         //Seta a velocidade pelo eixo vertical
         animator.SetFloat("Speed", Mathf.Abs(move));
 
+        //Rotação da câmera
+        MoveCamera();
+        if (Input.GetMouseButtonDown(1))
+        {
+            transform.eulerAngles = new Vector3(0, 180, 0);
+            cameraPitch = 0;
+            cameraYaw = 180;
+        }        
+    }
+
+    private void FixedUpdate()
+    {
+        if (isGrounded && Input.GetKeyDown("space"))
+        {
+            animator.SetBool("Jump", true);
+            rigidbody.AddForce(Vector3.up * jumpForce);
+            isGrounded = false;
+        }
+
+        if (canFlip)
+            move = Input.GetAxis("Vertical") * moveSpeed;
+
+        if (Input.GetKey("left") || Input.GetKey("a"))
+            direction = -rotateSpeed;
+        else if (Input.GetKey("right") || Input.GetKey("d"))
+            direction = rotateSpeed;
+        else
+            direction = 0;
+
+        angleYDeg = transform.eulerAngles.y;
+        angleYRad = angleYDeg * Mathf.Deg2Rad;
+
+        if ((Input.GetKeyDown("down") || Input.GetKeyDown("s")) && canFlip)
+        {
+            cameraYaw += 180;
+            canFlip = false;
+            move = 0;
+        }
+        if (!Input.GetKeyDown("down") && !Input.GetKeyDown("s"))
+            canFlip = true;
     }
 
     void OnCollisionEnter(Collision other)
@@ -84,5 +109,18 @@ public class MoveControl : MonoBehaviour
         {
             isGrounded = false;
         }
+    }
+
+    void MoveCamera()
+    {
+        cameraPitch -= cameraVerticalSpeed * Input.GetAxis("Mouse Y");
+        cameraYaw += cameraHorizontalSpeed * Input.GetAxis("Mouse X");
+
+        if (cameraPitch > 30)
+            cameraPitch = 30;
+        else if (cameraPitch < -30)
+            cameraPitch = -30;
+
+        transform.eulerAngles = new Vector3(cameraPitch, cameraYaw, 0);
     }
 }
