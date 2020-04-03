@@ -2,7 +2,7 @@
 
 public class MoveControl : MonoBehaviour
 {
-    public Transform camera;
+    public Transform neck;
     public float cameraHorizontalSpeed;
     public float cameraVerticalSpeed;
     public Animator animator;
@@ -24,7 +24,7 @@ public class MoveControl : MonoBehaviour
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
-        cameraPitch = 0;
+        cameraPitch = -90;
         cameraYaw = 180;
     }
 
@@ -57,14 +57,14 @@ public class MoveControl : MonoBehaviour
         if (Input.GetMouseButtonDown(1))
         {
             transform.eulerAngles = new Vector3(0, 180, 0);
-            cameraPitch = 0;
+            cameraPitch = -90;
             cameraYaw = 180;
         }        
     }
 
     private void FixedUpdate()
     {
-        if (isGrounded && Input.GetKeyDown("space"))
+        if (isGrounded && Input.GetKey("j"))
         {
             animator.SetBool("Jump", true);
             rigidbody.AddForce(Vector3.up * jumpForce);
@@ -116,11 +116,15 @@ public class MoveControl : MonoBehaviour
         cameraPitch -= cameraVerticalSpeed * Input.GetAxis("Mouse Y");
         cameraYaw += cameraHorizontalSpeed * Input.GetAxis("Mouse X");
 
-        if (cameraPitch > 30)
-            cameraPitch = 30;
-        else if (cameraPitch < -30)
-            cameraPitch = -30;
+        if (cameraPitch > -60)
+            cameraPitch = -60;
+        else if (cameraPitch < -120)
+            cameraPitch = -120;
 
-        transform.eulerAngles = new Vector3(cameraPitch, cameraYaw, 0);
+        transform.eulerAngles = new Vector3(0, cameraYaw, 0);
+
+        neck.eulerAngles = new Vector3(neck.eulerAngles.x,
+           neck.eulerAngles.y, 
+            -180 - cameraPitch);
     }
 }
