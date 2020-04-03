@@ -8,14 +8,19 @@ public class MoveControl : MonoBehaviour
     public Animator animator;
     public float moveSpeed = 1.5f;
     public float rotateSpeed = 5f;
-    public short jumpForce;
+    public AudioSource audioSource;
+    public AudioClip[] clips;
+    /*0,1,2 Jump sounds
+     * 3 start sound
+     * */
 
     float move;
     float physicalMovement;
-    float direction;
     float angleYDeg;
     float angleYRad;
     bool canFlip = true;
+    bool canRightFlip = true;
+    bool canLeftFlip = true;
     bool isGrounded;
 
     private Rigidbody rigidbody;
@@ -25,26 +30,22 @@ public class MoveControl : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         cameraPitch = -90;
-        cameraYaw = 180;
+        cameraYaw = 0;
+        audioSource.clip = clips[3];
+        audioSource.Play();
     }
 
     // Update is called once per frame
     void Update()
     {
         //Anda pra direção apontada
-        if (Mathf.Abs(move) > 0.15f)
+        if (Mathf.Abs(move) > 0.15f && !(animator.GetBool("Jump")))
         {
-            if (animator.GetBool("Jump"))
-                physicalMovement = moveSpeed / 100f;
-            else
-                physicalMovement = moveSpeed / 50f;
-            transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
-                , transform.position.y,
-                transform.position.z + Mathf.Cos(angleYRad) * physicalMovement);
+            physicalMovement = moveSpeed / 50f;
+        transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
+            , transform.position.y,
+            transform.position.z + Mathf.Cos(angleYRad) * physicalMovement);
         }
-
-        //Rotaciona
-        cameraYaw += direction;
 
         //Verifica se a personagem deve virar de costas
         
@@ -64,33 +65,52 @@ public class MoveControl : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (isGrounded && Input.GetKey("j"))
+        if (isGrounded && Input.GetKey("space"))
         {
             animator.SetBool("Jump", true);
-            rigidbody.AddForce(Vector3.up * jumpForce);
+            transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad)
+                , transform.position.y + 1,
+                transform.position.z + Mathf.Cos(angleYRad));
             isGrounded = false;
+            audioSource.clip =  clips[System.DateTime.Now.Millisecond % 3];
+            audioSource.Play();
         }
 
         if (canFlip)
             move = Input.GetAxis("Vertical") * moveSpeed;
 
-        if (Input.GetKey("left") || Input.GetKey("a"))
-            direction = -rotateSpeed;
-        else if (Input.GetKey("right") || Input.GetKey("d"))
-            direction = rotateSpeed;
-        else
-            direction = 0;
+        if ((Input.GetKey("left") || Input.GetKey("a")) && canLeftFlip)
+        {
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                transform.eulerAngles.y - 90,
+                transform.eulerAngles.z);
+            canLeftFlip = false;
+        }
+        else if ((Input.GetKey("right") || Input.GetKey("d")) && canRightFlip)
+        {
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                transform.eulerAngles.y + 90,
+                transform.eulerAngles.z);
+            canRightFlip = false;
+        }
+
+        if (!Input.GetKey("left") && !Input.GetKey("a"))
+            canLeftFlip = true;
+        if (!Input.GetKey("right") && !Input.GetKey("d"))
+            canRightFlip = true;
 
         angleYDeg = transform.eulerAngles.y;
         angleYRad = angleYDeg * Mathf.Deg2Rad;
 
-        if ((Input.GetKeyDown("down") || Input.GetKeyDown("s")) && canFlip)
+        if ((Input.GetKey("down") || Input.GetKey("s")) && canFlip)
         {
-            cameraYaw += 180;
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                transform.eulerAngles.y + 180,
+                transform.eulerAngles.z);
             canFlip = false;
             move = 0;
         }
-        if (!Input.GetKeyDown("down") && !Input.GetKeyDown("s"))
+        if (!Input.GetKey("down") && !Input.GetKey("s"))
             canFlip = true;
     }
 
@@ -120,10 +140,12 @@ public class MoveControl : MonoBehaviour
             cameraPitch = -60;
         else if (cameraPitch < -120)
             cameraPitch = -120;
+        if (cameraYaw < -30)
+            cameraYaw = -30;
+        else if (cameraYaw > 30)
+            cameraYaw = 30;
 
-        transform.eulerAngles = new Vector3(0, cameraYaw, 0);
-
-        neck.eulerAngles = new Vector3(neck.eulerAngles.x,
+        neck.eulerAngles = new Vector3(cameraYaw*-1,
            neck.eulerAngles.y, 
             -180 - cameraPitch);
     }
