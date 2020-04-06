@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MoveControl : MonoBehaviour
 {
@@ -7,7 +8,7 @@ public class MoveControl : MonoBehaviour
     public float cameraVerticalSpeed;
     public Animator animator;
     public float moveSpeed = 1.5f;
-    public float rotateSpeed = 5f;
+    public float jumpPower;
     public AudioSource audioSource;
     public AudioClip[] clips;
     /*0,1,2 Jump sounds
@@ -21,7 +22,7 @@ public class MoveControl : MonoBehaviour
     bool canFlip = true;
     bool canRightFlip = true;
     bool canLeftFlip = true;
-    bool isGrounded;
+    public static bool isGrounded = true;
 
     private Rigidbody rigidbody;
     private float cameraPitch;
@@ -29,8 +30,8 @@ public class MoveControl : MonoBehaviour
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
-        cameraPitch = -90;
-        cameraYaw = 0;
+        cameraPitch = 30;
+        cameraYaw = -180;
         audioSource.clip = clips[3];
         audioSource.Play();
     }
@@ -39,13 +40,16 @@ public class MoveControl : MonoBehaviour
     void Update()
     {
         //Anda pra direção apontada
-        if (Mathf.Abs(move) > 0.15f && !(animator.GetBool("Jump")))
+        if (Mathf.Abs(move) > 0.15f && isGrounded)
         {
             physicalMovement = moveSpeed / 50f;
-        transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
+
+        transform.position = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
             , transform.position.y,
             transform.position.z + Mathf.Cos(angleYRad) * physicalMovement);
         }
+
+        neck.position = new Vector3(transform.position.x, transform.position.y + 4, transform.position.z + 5);
 
         //Verifica se a personagem deve virar de costas
         
@@ -54,26 +58,34 @@ public class MoveControl : MonoBehaviour
         animator.SetFloat("Speed", Mathf.Abs(move));
 
         //Rotação da câmera
-        MoveCamera();
+        MoveNeck();
         if (Input.GetMouseButtonDown(1))
         {
             transform.eulerAngles = new Vector3(0, 180, 0);
-            cameraPitch = -90;
-            cameraYaw = 180;
-        }        
+            cameraPitch = 30;
+            cameraYaw = -180;
+        }
+
+        if (transform.position.y < -5)
+            SceneManager.LoadScene("Level" + LevelManager.level);
     }
 
     private void FixedUpdate()
     {
         if (isGrounded && Input.GetKey("space"))
         {
-            animator.SetBool("Jump", true);
-            transform.localPosition = new Vector3(transform.position.x + Mathf.Sin(angleYRad)
-                , transform.position.y + 1,
-                transform.position.z + Mathf.Cos(angleYRad));
-            isGrounded = false;
             audioSource.clip =  clips[System.DateTime.Now.Millisecond % 3];
             audioSource.Play();
+            animator.SetBool("Jump", true);
+        }
+
+        else if(!isGrounded)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, new Vector3(transform.position.x
+                + Mathf.Sin(angleYRad),
+                transform.position.y + 1,
+                transform.position.z + Mathf.Cos(angleYRad)),
+                jumpPower * Time.deltaTime);
         }
 
         if (canFlip)
@@ -114,6 +126,25 @@ public class MoveControl : MonoBehaviour
             canFlip = true;
     }
 
+    void MoveNeck()
+    {
+        cameraPitch -= cameraVerticalSpeed * Input.GetAxis("Mouse Y");
+        cameraYaw += cameraHorizontalSpeed * Input.GetAxis("Mouse X");
+
+        if (cameraYaw > -150)
+            cameraYaw = -150;
+        else if (cameraYaw < -210)
+            cameraYaw = -210;
+        if (cameraPitch < 0)
+            cameraPitch = 0;
+        else if (cameraPitch > 60)
+            cameraPitch = 60;
+
+        neck.eulerAngles = new Vector3(cameraPitch,
+           cameraYaw,
+            neck.eulerAngles.z);
+    }
+
     void OnCollisionEnter(Collision other)
     {
         if (other.gameObject.tag == "Ground")
@@ -122,31 +153,11 @@ public class MoveControl : MonoBehaviour
             animator.SetBool("Jump", false);
         }
     }
-
-    void OnCollisionExit(Collision other)
+    private void OnCollisionExit(Collision collision)
     {
-        if (other.gameObject.tag == "Ground")
-        {
+        if (collision.gameObject.tag == "Ground")
+        { 
             isGrounded = false;
         }
-    }
-
-    void MoveCamera()
-    {
-        cameraPitch -= cameraVerticalSpeed * Input.GetAxis("Mouse Y");
-        cameraYaw += cameraHorizontalSpeed * Input.GetAxis("Mouse X");
-
-        if (cameraPitch > -60)
-            cameraPitch = -60;
-        else if (cameraPitch < -120)
-            cameraPitch = -120;
-        if (cameraYaw < -30)
-            cameraYaw = -30;
-        else if (cameraYaw > 30)
-            cameraYaw = 30;
-
-        neck.eulerAngles = new Vector3(cameraYaw*-1,
-           neck.eulerAngles.y, 
-            -180 - cameraPitch);
     }
 }
