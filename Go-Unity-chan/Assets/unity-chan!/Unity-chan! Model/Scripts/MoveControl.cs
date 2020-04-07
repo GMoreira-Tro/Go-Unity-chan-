@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MoveControl : MonoBehaviour
@@ -14,6 +16,16 @@ public class MoveControl : MonoBehaviour
     /*0,1,2 Jump sounds
      * 3 start sound
      * */
+     [Flags]
+    public enum PlayerStates
+    {
+        idling = 0,
+        running = 1,
+        jumping = 2,
+        grabing = 4,
+        pushing = 8
+    }
+    PlayerStates machineStates;
 
     float move;
     float physicalMovement;
@@ -40,19 +52,12 @@ public class MoveControl : MonoBehaviour
     void Update()
     {
         //Anda pra direção apontada
-        if (Mathf.Abs(move) > 0.15f && isGrounded)
+        if ((Mathf.Abs(move) > 0.15f && machineStates == 0))
         {
-            physicalMovement = moveSpeed / 50f;
-
-        transform.position = new Vector3(transform.position.x + Mathf.Sin(angleYRad) * physicalMovement
-            , transform.position.y,
-            transform.position.z + Mathf.Cos(angleYRad) * physicalMovement);
+            StartCoroutine(MovingRoutine());
         }
 
         neck.position = new Vector3(transform.position.x, transform.position.y + 4, transform.position.z + 5);
-
-        //Verifica se a personagem deve virar de costas
-        
 
         //Seta a velocidade pelo eixo vertical
         animator.SetFloat("Speed", Mathf.Abs(move));
@@ -67,63 +72,63 @@ public class MoveControl : MonoBehaviour
         }
 
         if (transform.position.y < -5)
+        {
             SceneManager.LoadScene("Level" + LevelManager.level);
+        }
+
+        //Arredonda a posição porque o ângulo zoa, às vezes, por conta do corpo dela
+        RoundingPosition();
     }
 
     private void FixedUpdate()
     {
-        if (isGrounded && Input.GetKey("space"))
+        if (!machineStates.HasFlag(PlayerStates.jumping) && Input.GetKey("space"))
         {
             audioSource.clip =  clips[System.DateTime.Now.Millisecond % 3];
             audioSource.Play();
             animator.SetBool("Jump", true);
+            StartCoroutine(JumpRoutine());
         }
 
-        else if(!isGrounded)
+        if (machineStates == 0)
         {
-            transform.position = Vector3.MoveTowards(transform.position, new Vector3(transform.position.x
-                + Mathf.Sin(angleYRad),
-                transform.position.y + 1,
-                transform.position.z + Mathf.Cos(angleYRad)),
-                jumpPower * Time.deltaTime);
+            if (canFlip)
+                move = Input.GetAxis("Vertical") * moveSpeed;
+
+            if ((Input.GetKey("left") || Input.GetKey("a")) && canLeftFlip)
+            {
+                transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                    transform.eulerAngles.y - 90,
+                    transform.eulerAngles.z);
+                canLeftFlip = false;
+            }
+            else if ((Input.GetKey("right") || Input.GetKey("d")) && canRightFlip)
+            {
+                transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                    transform.eulerAngles.y + 90,
+                    transform.eulerAngles.z);
+                canRightFlip = false;
+            }
+
+            if (!Input.GetKey("left") && !Input.GetKey("a"))
+                canLeftFlip = true;
+            if (!Input.GetKey("right") && !Input.GetKey("d"))
+                canRightFlip = true;
+
+            angleYDeg = transform.eulerAngles.y;
+            angleYRad = angleYDeg * Mathf.Deg2Rad;
+
+            if ((Input.GetKey("down") || Input.GetKey("s")) && canFlip)
+            {
+                transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                    transform.eulerAngles.y + 180,
+                    transform.eulerAngles.z);
+                canFlip = false;
+                move = 0;
+            }
+            if (!Input.GetKey("down") && !Input.GetKey("s"))
+                canFlip = true;
         }
-
-        if (canFlip)
-            move = Input.GetAxis("Vertical") * moveSpeed;
-
-        if ((Input.GetKey("left") || Input.GetKey("a")) && canLeftFlip)
-        {
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                transform.eulerAngles.y - 90,
-                transform.eulerAngles.z);
-            canLeftFlip = false;
-        }
-        else if ((Input.GetKey("right") || Input.GetKey("d")) && canRightFlip)
-        {
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                transform.eulerAngles.y + 90,
-                transform.eulerAngles.z);
-            canRightFlip = false;
-        }
-
-        if (!Input.GetKey("left") && !Input.GetKey("a"))
-            canLeftFlip = true;
-        if (!Input.GetKey("right") && !Input.GetKey("d"))
-            canRightFlip = true;
-
-        angleYDeg = transform.eulerAngles.y;
-        angleYRad = angleYDeg * Mathf.Deg2Rad;
-
-        if ((Input.GetKey("down") || Input.GetKey("s")) && canFlip)
-        {
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                transform.eulerAngles.y + 180,
-                transform.eulerAngles.z);
-            canFlip = false;
-            move = 0;
-        }
-        if (!Input.GetKey("down") && !Input.GetKey("s"))
-            canFlip = true;
     }
 
     void MoveNeck()
@@ -145,19 +150,65 @@ public class MoveControl : MonoBehaviour
             neck.eulerAngles.z);
     }
 
-    void OnCollisionEnter(Collision other)
+    IEnumerator JumpRoutine()
     {
-        if (other.gameObject.tag == "Ground")
+        machineStates |= PlayerStates.jumping;
+
+        float timer = 0;
+        float jumpDuration = 1f; //Duração da animação do pulo
+        Vector3 initialPos = transform.position;
+        Vector3 finalPos = new Vector3(transform.position.x
+                    + Mathf.Sin(angleYRad),
+                    transform.position.y + 1,
+                    transform.position.z + Mathf.Cos(angleYRad));
+
+        while (timer < jumpDuration)
         {
-            isGrounded = true;
-            animator.SetBool("Jump", false);
+            timer += Time.deltaTime;
+            transform.position = Vector3.Lerp(initialPos, 
+                    finalPos,
+                    timer / jumpDuration
+                    );
+            /*transform.position = Vector3.MoveTowards(transform.position, new Vector3(transform.position.x
+                    + Mathf.Sin(angleYRad),
+                    transform.position.y + 1,
+                    transform.position.z + Mathf.Cos(angleYRad)),
+                    jumpPower * Time.deltaTime);*/
+            yield return null;
         }
+        animator.SetBool("Jump", false);
+        machineStates = 0;
+
+        //Checar se tenho um tile abaixo
     }
-    private void OnCollisionExit(Collision collision)
+
+    IEnumerator MovingRoutine()
     {
-        if (collision.gameObject.tag == "Ground")
-        { 
-            isGrounded = false;
+        machineStates |= PlayerStates.running;
+
+        float timer = 0;
+        float runningDuration = 1.5f; //Duração da animação do pulo
+        Vector3 initialPos = transform.position;
+        Vector3 finalPos = new Vector3(transform.position.x
+                    + Mathf.Sin(angleYRad),
+                    transform.position.y,
+                    transform.position.z + Mathf.Cos(angleYRad));
+
+        while (timer < runningDuration)
+        {
+            timer += Time.deltaTime;
+            transform.position = Vector3.Lerp(initialPos,
+                    finalPos,
+                    timer / runningDuration
+                    );
+            yield return null;
         }
+        machineStates = 0;
+    }
+
+    void RoundingPosition()
+    {
+        transform.position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y),
+            Mathf.RoundToInt(transform.position.z));
     }
 }
