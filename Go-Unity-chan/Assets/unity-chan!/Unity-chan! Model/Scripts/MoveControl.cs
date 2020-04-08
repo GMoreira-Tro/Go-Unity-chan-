@@ -36,21 +36,23 @@ public class MoveControl : MonoBehaviour
     bool canLeftFlip = true;
     public static bool isGrounded = true;
 
-    private Rigidbody rigidbody;
     private float cameraPitch;
     private float cameraYaw;
     void Start()
     {
-        rigidbody = GetComponent<Rigidbody>();
         cameraPitch = 30;
         cameraYaw = -180;
         audioSource.clip = clips[3];
         audioSource.Play();
     }
 
-    // Update is called once per frame
     void Update()
     {
+        //Debug.Log("Front " + cubeInFrontType());
+        // Debug.Log("Back " + cubeBehindType());
+        //Debug.Log(Mathf.RoundToInt(XDirectionFront()) + "..." + Mathf.RoundToInt(ZDirectionFront()));
+        //Debug.Log(machineStates + " - " + Input.GetKey("p"));
+
         //Anda pra direção apontada
         if ((Mathf.Abs(move) > 0.15f && machineStates == 0))
         {
@@ -88,6 +90,15 @@ public class MoveControl : MonoBehaviour
             audioSource.Play();
             animator.SetBool("Jump", true);
             StartCoroutine(JumpRoutine());
+        }
+
+        if (machineStates == 0 && Input.GetKey("p") && cubeInFrontType() != 0 && cubeInFrontType() !=
+            LevelManager.CubesTypes.rigid
+            )
+        {
+            audioSource.clip = clips[4];
+            audioSource.Play();
+            StartCoroutine(GrabingRoutine());
         }
 
         if (machineStates == 0)
@@ -152,7 +163,7 @@ public class MoveControl : MonoBehaviour
 
     IEnumerator JumpRoutine()
     {
-        machineStates |= PlayerStates.jumping;
+        machineStates = PlayerStates.jumping;
 
         float timer = 0;
         float jumpDuration = 1f; //Duração da animação do pulo
@@ -184,15 +195,12 @@ public class MoveControl : MonoBehaviour
 
     IEnumerator MovingRoutine()
     {
-        machineStates |= PlayerStates.running;
+        machineStates = PlayerStates.running;
 
         float timer = 0;
-        float runningDuration = 1.5f; //Duração da animação do pulo
+        float runningDuration = 0.5f; //Duração da animação do pulo
         Vector3 initialPos = transform.position;
-        Vector3 finalPos = new Vector3(transform.position.x
-                    + Mathf.Sin(angleYRad),
-                    transform.position.y,
-                    transform.position.z + Mathf.Cos(angleYRad));
+        Vector3 finalPos = moveFront();
 
         while (timer < runningDuration)
         {
@@ -206,9 +214,134 @@ public class MoveControl : MonoBehaviour
         machineStates = 0;
     }
 
+    IEnumerator GrabingRoutine()
+    {
+        machineStates = PlayerStates.grabing;
+        GameObject cube = cubeInFront().getCube();
+        Debug.Log("is grabing");
+
+        while(machineStates == PlayerStates.grabing)
+        {
+            if (Input.GetKeyDown("p"))
+            {
+                machineStates = 0;
+            }
+            else if(Input.GetKey("down") || Input.GetKey("s"))
+            {
+                if(cubeBehindType() == 0)
+                {
+                    float timer = 0;
+                    float pullingDuration = 0.5f;
+                    Vector3 initialPos = transform.position;
+                    Vector3 finalPos = moveBack();
+                    Vector3 cubeInitialPos = moveFront();
+
+                    while (timer < pullingDuration)
+                    {
+                        float tim = timer / pullingDuration;
+                        timer += Time.deltaTime;
+                        transform.position = Vector3.Lerp(initialPos,
+                                finalPos,
+                                tim
+                                );
+                        cube.transform.position = Vector3.Lerp(cubeInitialPos,
+                            initialPos,
+                            tim
+                            );
+                        yield return null;
+                    }
+                }
+            }
+            yield return null;
+        }
+    }
+
     void RoundingPosition()
     {
         transform.position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y),
             Mathf.RoundToInt(transform.position.z));
+    }
+
+    float XDirectionFront()
+    {
+        return transform.position.x + Mathf.Sin(angleYRad);
+    }
+
+    float ZDirectionFront()
+    {
+        return transform.position.z + Mathf.Cos(angleYRad);
+    }
+
+    float XDirectionBack()
+    {
+        return transform.position.x - Mathf.Sin(angleYRad);
+    }
+
+    float ZDirectionBack()
+    {
+        return transform.position.z - Mathf.Cos(angleYRad);
+    }
+
+    LevelManager.CubesTypes cubeInFrontType()
+    {
+        try
+        {
+            return LevelManager.map[Mathf.RoundToInt(XDirectionFront()), (int)transform.position.y, -Mathf.RoundToInt(ZDirectionFront())]
+                    .getCubeType();
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return 0;
+        }
+    }
+    LevelManager.CubesTypes cubeBehindType()
+    {
+        try
+        {
+            return LevelManager.map[Mathf.RoundToInt(XDirectionBack()), (int)transform.position.y, -Mathf.RoundToInt(ZDirectionBack())]
+                .getCubeType();
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return 0;
+        }
+    }
+
+    LevelManager.mapObject cubeInFront()
+    {
+        try
+        {
+            return LevelManager.map[Mathf.RoundToInt(XDirectionFront()), (int)transform.position.y, -Mathf.RoundToInt(ZDirectionFront())];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return new LevelManager.mapObject(0,null);
+        }
+    }
+
+    LevelManager.mapObject cubeBehind()
+    {
+        try
+        {
+            return LevelManager.map[Mathf.RoundToInt(XDirectionBack()), (int)transform.position.y, -Mathf.RoundToInt(ZDirectionBack())];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return new LevelManager.mapObject(0, null);
+        }
+    }
+
+    Vector3 moveFront()
+    {
+        return new Vector3(XDirectionFront(),
+                    transform.position.y,
+                    ZDirectionFront()); ;
+    }
+
+    Vector3 moveBack()
+    {
+        return new Vector3(XDirectionBack(),
+                    transform.position.y,
+                    ZDirectionBack());
     }
 }
