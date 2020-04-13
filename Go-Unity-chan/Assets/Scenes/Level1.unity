@@ -1117,16 +1117,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04adb05f42c1c984ebc3755f1ae7589a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rigidCube: {fileID: -2242433075346140528, guid: 32dc1bc194bc8d64dac59a81739fa30b,
+  rigidCube: {fileID: 5185828945173323879, guid: 32dc1bc194bc8d64dac59a81739fa30b,
     type: 3}
-  standardCube: {fileID: 1428979429627312958, guid: dde749dae448ae944abfb5110e1742b1,
+  standardCube: {fileID: 5185828945173323879, guid: dde749dae448ae944abfb5110e1742b1,
     type: 3}
-  explosiveCube: {fileID: -2575390616622778969, guid: 29b512cce7a0ce040b7b807cd480ee86,
+  explosiveCube: {fileID: 5185828945173323879, guid: 29b512cce7a0ce040b7b807cd480ee86,
     type: 3}
-  BreakableCube: {fileID: 3876513292531786750, guid: 7e9d9a127e6c3f646bfe3efa386aa50f,
+  BreakableCube: {fileID: 5185828945173323879, guid: 7e9d9a127e6c3f646bfe3efa386aa50f,
     type: 3}
   ggCube: {fileID: 5185828945173323879, guid: e16258ec2253fec4c997c946dcdc9362, type: 3}
   playerPosition: {fileID: 2112328453}
+  UnityChan: {fileID: 2112328457}
 --- !u!4 &1589969440
 Transform:
   m_ObjectHideFlags: 0
@@ -1588,8 +1589,6 @@ MonoBehaviour:
   cameraHorizontalSpeed: 2
   cameraVerticalSpeed: 2
   animator: {fileID: 2112328451}
-  moveSpeed: 1
-  jumpPower: 5
   audioSource: {fileID: 2112328456}
   clips:
   - {fileID: 8300000, guid: eed2451bbd4264da8b6c27c92df62faf, type: 3}
@@ -1597,6 +1596,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: a96205706bbde4a2cb843c257f0a114a, type: 3}
   - {fileID: 8300000, guid: 1ec434e75e64c4dc7ab389969fcfaa46, type: 3}
   - {fileID: 8300000, guid: 1ec434e75e64c4dc7ab389969fcfaa46, type: 3}
+  machineStates: 0
+  isGrounded: 1
 --- !u!82 &2112328458
 AudioSource:
   m_ObjectHideFlags: 0

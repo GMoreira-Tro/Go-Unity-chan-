@@ -1,15 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
-    public RigidCube rigidCube;
-    public StandardCube standardCube;
-    public ExplosiveCube explosiveCube;
-    public BreakableCube BreakableCube;
+    public GameObject rigidCube;
+    public GameObject standardCube;
+    public GameObject explosiveCube;
+    public GameObject BreakableCube;
     public GameObject ggCube;
     public Transform playerPosition;
+    public MoveControl UnityChan;
+
+    Thread tick;
+    bool katsu;
 
     GameObject GO;
 
@@ -64,7 +69,7 @@ public class LevelManager : MonoBehaviour
                 }
             }
         }
-        explosiveCube.playerPosition = playerPosition;
+
         switch(level)
         {
             case 1:
@@ -72,45 +77,78 @@ public class LevelManager : MonoBehaviour
                 break;
         }
     }
-    void Update()
+    void FixedUpdate()
     {
-        
+        mapObject cube = UnityChan.CubeUnder(UnityChan.RoundingPosition());
+
+        if (UnityChan.machineStates == MoveControl.PlayerStates.idling)
+        {
+            if (cube.getCubeType() != 0)
+            {
+                switch (cube.getCubeType())
+                {
+                    case CubesTypes.explosive:
+                        tick = new Thread(explode);
+                        tick.Start();
+
+                        if (katsu)
+                        {
+                            Destroy(cube.getCube());
+                        }
+                        break;
+                }
+            }
+            else 
+            {
+                {
+                    StopAllCoroutines();
+                    StartCoroutine(UnityChan.FallingRoutine());
+                }
+            }
+        }
     }
 
     void InstantiateLevel1()
     {
         for (int i = 0; i < 7; i++)
         {
-            GO = Instantiate(standardCube, new Vector3(i, 0, 0), Quaternion.identity).gameObject;
+            GO = Instantiate(standardCube, new Vector3(i, 0, 0), Quaternion.identity);
             map[i, 0, 0] = new mapObject(CubesTypes.standard, GO);
         }
         for (int i = 0; i < 3; i++)
         {
-           GO = Instantiate(rigidCube, new Vector3(i, 1, 0), Quaternion.identity).gameObject;
+           GO = Instantiate(rigidCube, new Vector3(i, 1, 0), Quaternion.identity);
             map[i, 1, 0] = new mapObject(CubesTypes.rigid, GO);
         }
-
-        GO = Instantiate(explosiveCube, new Vector3(1, 2, 0), Quaternion.identity).gameObject;
-        map[1, 2, 0] = new mapObject(CubesTypes.rigid, GO);
-        Instantiate(standardCube, new Vector3(0, 2, 0), Quaternion.identity);
-        map[0, 2, 0] = new mapObject(CubesTypes.standard,GO);
 
         for (int i = 0; i < 7; i++)
         {
             for (int j = 0; j < 3; j++)
             {
-                GO = Instantiate(rigidCube, new Vector3(i, j, -1), Quaternion.identity).gameObject;
+                GO = Instantiate(rigidCube, new Vector3(i, j, -1), Quaternion.identity);
                 map[i, j, 1] = new mapObject(CubesTypes.rigid,GO);
             }
         }
+
         for (int i = 2; i < 7; i++)
         {
-            GO = Instantiate(rigidCube, new Vector3(i, 3, -1), Quaternion.identity).gameObject;
+            GO = Instantiate(rigidCube, new Vector3(i, 3, -1), Quaternion.identity);
             map[i, 3, 1] = new mapObject(CubesTypes.rigid, GO);
         }
-        GO = Instantiate(standardCube, new Vector3(0, 3, -1), Quaternion.identity).gameObject;
+        GO = Instantiate(standardCube, new Vector3(0, 3, -1), Quaternion.identity);
         map[0, 3, 1] = new mapObject(CubesTypes.standard,GO);
-        GO = Instantiate(rigidCube, new Vector3(1, 3, -1), Quaternion.identity).gameObject;
+        GO = Instantiate(rigidCube, new Vector3(1, 3, -1), Quaternion.identity);
         map[1, 3, 1] = new mapObject(CubesTypes.rigid,GO);
+
+        GO = Instantiate(explosiveCube, new Vector3(1, 2, 0), Quaternion.identity);
+        map[1, 2, 0] = new mapObject(CubesTypes.explosive, GO);
+        Instantiate(standardCube, new Vector3(0, 2, 0), Quaternion.identity);
+        map[0, 2, 0] = new mapObject(CubesTypes.standard, GO);
+
+    }
+    void explode()
+    {
+        Thread.Sleep(3000);
+        katsu = true;
     }
 }

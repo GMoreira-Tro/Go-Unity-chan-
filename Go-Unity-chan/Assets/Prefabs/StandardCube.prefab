@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5185828945173323875}
   - component: {fileID: 5185828945173323874}
   - component: {fileID: 5185828945173323873}
-  - component: {fileID: 1428979429627312958}
   m_Layer: 0
   m_Name: StandardCube
   m_TagString: Ground
@@ -80,15 +79,3 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!114 &1428979429627312958
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5185828945173323879}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43d4934699298fb48bbe5a0e389abbca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
