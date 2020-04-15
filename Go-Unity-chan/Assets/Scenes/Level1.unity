@@ -360,7 +360,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_LocalRotation.z
@@ -368,7 +368,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_RootOrder
@@ -380,7 +380,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 400096, guid: 412b92d4feeb9c548bfa98f62c4d1022, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -1127,7 +1127,7 @@ MonoBehaviour:
     type: 3}
   ggCube: {fileID: 5185828945173323879, guid: e16258ec2253fec4c997c946dcdc9362, type: 3}
   playerPosition: {fileID: 2112328453}
-  UnityChan: {fileID: 2112328457}
+  unityChan: {fileID: 2112328457}
 --- !u!4 &1589969440
 Transform:
   m_ObjectHideFlags: 0
@@ -1595,9 +1595,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 6ccbc3d284bd849d49fb1f8f94ab2888, type: 3}
   - {fileID: 8300000, guid: a96205706bbde4a2cb843c257f0a114a, type: 3}
   - {fileID: 8300000, guid: 1ec434e75e64c4dc7ab389969fcfaa46, type: 3}
-  - {fileID: 8300000, guid: 1ec434e75e64c4dc7ab389969fcfaa46, type: 3}
+  - {fileID: 8300000, guid: d26db10019378471eabd61108a8e8468, type: 3}
   machineStates: 0
-  isGrounded: 1
 --- !u!82 &2112328458
 AudioSource:
   m_ObjectHideFlags: 0

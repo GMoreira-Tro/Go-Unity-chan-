@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -23,7 +24,7 @@ public class MoveControl : MonoBehaviour
         jumping = 2,
         grabing = 4,
         pushing = 8,
-        pulling = 16,
+        climbing = 16,
         falling = 32
     }
     public PlayerStates machineStates;
@@ -34,7 +35,7 @@ public class MoveControl : MonoBehaviour
     bool canFlip = true;
     bool canRightFlip = true;
     bool canLeftFlip = true;
-    public bool isGrounded = true;
+    bool isGrounded = true;
 
     private float cameraPitch;
     private float cameraYaw;
@@ -48,11 +49,6 @@ public class MoveControl : MonoBehaviour
 
     void Update()
     {
-        //Debug.Log("Front " + cubeInFrontType());
-        // Debug.Log("Back " + cubeBehindType());
-        //Debug.Log(Mathf.RoundToInt(XDirectionFront()) + "..." + Mathf.RoundToInt(ZDirectionFront()));
-        //Debug.Log(machineStates + " - " + Input.GetKey("p"));
-
         //Anda pra direção apontada
         if (animator.GetBool("Run") && machineStates == PlayerStates.idling)
         {
@@ -75,13 +71,15 @@ public class MoveControl : MonoBehaviour
             SceneManager.LoadScene("Level" + LevelManager.level);
         }
 
+        Update2();
+
     }
 
-    private void FixedUpdate()
+    private void Update2()
     {
-        if (!machineStates.HasFlag(PlayerStates.jumping) && Input.GetKey("space") && CubeUnder(RoundingPosition()).getCubeType() != 0)
+        if (machineStates == PlayerStates.idling && Input.GetKey("space") && cubeUpAndInFront(RoundingPosition()).getCubeType() == 0)
         {
-            audioSource.clip =  clips[System.DateTime.Now.Millisecond % 3];
+            audioSource.clip =  clips[DateTime.Now.Millisecond % 3];
             audioSource.Play();
             animator.SetBool("Jump", true);
             StartCoroutine(JumpRoutine());
@@ -91,7 +89,7 @@ public class MoveControl : MonoBehaviour
         {
             RoundingPosition();
             if (!animator.GetBool("Run") &&
-            canFlip && Input.GetKey("w") || Input.GetKey("up") && cubeInFront(RoundingPosition()).getCubeType() == 0) { 
+            canFlip && Input.GetKey("w") || Input.GetKey("up") && cubeInFront(RoundingPosition()).getCube() == null) { 
                     animator.SetBool("Run", true);
             }
 
@@ -130,7 +128,7 @@ public class MoveControl : MonoBehaviour
             else if (!Input.GetKey("down") && !Input.GetKey("s"))
                 canFlip = true;
 
-            else if (Input.GetKey("p") && cubeInFront(RoundingPosition()).getCubeType() != 0 &&
+            if (Input.GetKey("p") && cubeInFront(RoundingPosition()).getCube() != null &&
             cubeInFront(RoundingPosition()).getCubeType() !=
             LevelManager.CubesTypes.rigid
             )
@@ -180,17 +178,11 @@ public class MoveControl : MonoBehaviour
                     finalPos,
                     timer / jumpDuration
                     );
-            /*transform.position = Vector3.MoveTowards(transform.position, new Vector3(transform.position.x
-                    + Mathf.Sin(angleYRad),
-                    transform.position.y + 1,
-                    transform.position.z + Mathf.Cos(angleYRad)),
-                    jumpPower * Time.deltaTime);*/
+
             yield return null;
         }
         animator.SetBool("Jump", false);
         machineStates = PlayerStates.idling;
-
-        //Checar se tenho um tile abaixo
     }
 
     public IEnumerator FallingRoutine()
@@ -243,6 +235,7 @@ public class MoveControl : MonoBehaviour
 
     IEnumerator GrabingRoutine()
     {
+        animator.SetBool("ArmsUp", true);
         machineStates = PlayerStates.grabing;
         GameObject cube = cubeInFront(transform).getCube();
 
@@ -251,16 +244,27 @@ public class MoveControl : MonoBehaviour
             if (Input.GetKeyDown("p"))
             {
                 machineStates = PlayerStates.idling;
+                animator.SetBool("ArmsUp", false);
             }
             else if(Input.GetKey("down") || Input.GetKey("s"))
             {
-                if(cubeBehind(transform).getCubeType() == 0)
+                if(cubeBehind(transform).getCube() == null)
                 {
                     float timer = 0;
                     float pullingDuration = 0.5f;
                     Vector3 initialPos = transform.position;
                     Vector3 finalPos = moveBack(transform);
                     Vector3 cubeInitialPos = moveFront(transform);
+
+                    LevelManager.map[(int)cube.transform.position.x, (int)cube.transform.position.y, (int)cube.transform.position.z] = 
+                        new LevelManager.mapObject(0,null);
+                    try
+                    {
+                            LevelManager.map[(int)transform.position.x, (int)transform.position.y,
+                    (int)-transform.position.z] = new LevelManager.mapObject(cubeInFront(transform).getCubeType(),
+                     cube);
+                    }
+                    catch (Exception) { }
 
                     while (timer < pullingDuration)
                     {
@@ -274,6 +278,48 @@ public class MoveControl : MonoBehaviour
                             initialPos,
                             tim
                             );
+                        yield return null;
+                    }
+                }
+            }
+
+            else if (Input.GetKey("up") || Input.GetKey("w"))
+            {
+                if (cubeInFront(cube.transform).getCubeType() != LevelManager.CubesTypes.rigid)
+                {
+                    List<GameObject> cubes = new List<GameObject>();
+                    while (true)
+                    {
+                        cubes.Add(cube);
+                        LevelManager.mapObject behind = cubeBehind(cube.transform);
+                        LevelManager.mapObject inFront = cubeInFront(cube.transform);
+                        LevelManager.map[(int)cube.transform.position.x, (int)cube.transform.position.y, (int)cube.transform.position.z] =
+                            new LevelManager.mapObject(behind.getCubeType(), behind.getCube());
+
+                        if (inFront.getCubeType() == LevelManager.CubesTypes.rigid || inFront.getCubeType() == LevelManager.CubesTypes.anyBlock)
+                        {
+                            Debug.Log("chega");
+                            break;
+                        }
+
+                        cube = inFront.getCube();
+                    }
+                    float timer = 0;
+                    float pushingDuration = 0.5f;
+                    Vector3 initialPos = transform.position;
+                    Vector3 finalPos = moveFront(transform);
+
+                    while (timer < pushingDuration)
+                    {
+                        float tim = timer / pushingDuration;
+                        timer += Time.deltaTime;
+                        transform.position = Vector3.Lerp(initialPos,
+                                finalPos,
+                                tim
+                                );
+                        for(int i = 0; i < cubes.Count; i++) {
+                            LerpCube(cubes[i], cubes[i].transform.position, moveFront(cubes[i].transform), tim);
+                        }
                         yield return null;
                     }
                 }
@@ -306,7 +352,26 @@ public class MoveControl : MonoBehaviour
 
     public float ZDirectionBack(Transform position)
     {
-        return position.position.z - Mathf.Cos(angleYRad);
+        return position.position.z + Mathf.Cos(angleYRad);
+    }
+
+    public float XDirectionRight(Transform position)
+    {
+        return position.position.x - Mathf.Cos(angleYRad);
+    }
+
+    public float XDirectionLeft(Transform position)
+    {
+        return position.position.x + Mathf.Cos(angleYRad);
+    }
+    public float ZDirectionLeft(Transform position)
+    {
+        return position.position.z + Mathf.Sin(angleYRad);
+    }
+
+    public float ZDirectionRight(Transform position)
+    {
+        return position.position.z - Mathf.Sin(angleYRad);
     }
 
     public LevelManager.mapObject cubeInFront(Transform position)
@@ -321,6 +386,19 @@ public class MoveControl : MonoBehaviour
             return new LevelManager.mapObject(0,null);
         }
     }
+
+    public LevelManager.mapObject cubeUpAndInFront(Transform position)
+    {
+        try
+        {
+            return LevelManager.map[(int)XDirectionFront(position), (int)position.position.y+1,
+                (int)-ZDirectionFront(position)];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return new LevelManager.mapObject(0, null);
+        }
+    }
     public LevelManager.mapObject cubeBehind(Transform position)
     {
         try
@@ -333,6 +411,33 @@ public class MoveControl : MonoBehaviour
             return new LevelManager.mapObject(0, null);
         }
     }
+
+    public LevelManager.mapObject cubeRight(Transform position)
+    {
+        try
+        {
+            return LevelManager.map[(int)XDirectionRight(position), (int)position.position.y,
+                (int)ZDirectionRight(position)];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return new LevelManager.mapObject(0, null);
+        }
+    }
+
+    public LevelManager.mapObject cubeLeft(Transform position)
+    {
+        try
+        {
+            return LevelManager.map[(int)XDirectionLeft(position), (int)position.position.y,
+                (int)ZDirectionLeft(position)];
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return new LevelManager.mapObject(0, null);
+        }
+    }
+
     public LevelManager.mapObject CubeUnder(Transform reference)
     {
         for (int i = 0; i < 7; i++)
@@ -341,7 +446,13 @@ public class MoveControl : MonoBehaviour
             {
                 for (int k = 0; k < 7; k++)
                 {
-                    GameObject cube = LevelManager.map[i, j, k].getCube();
+                    GameObject cube = null;
+                    try
+                    {
+                        cube = LevelManager.map[i, j, k].getCube();
+                    }
+                    catch (NullReferenceException) { }
+
                     if (cube != null)
                     {
                         if (IsOnTheCube(i,j,k, reference))
@@ -375,5 +486,13 @@ public class MoveControl : MonoBehaviour
         return new Vector3(XDirectionBack(reference),
                     transform.position.y,
                     ZDirectionBack(reference));
+    }
+
+    void LerpCube(GameObject cube, Vector3 cubeInitialPos, Vector3 cubeFinalPos, float tim)
+    {
+        cube.transform.position = Vector3.Lerp(cubeInitialPos,
+                            cubeFinalPos,
+                            tim
+                            );
     }
 }

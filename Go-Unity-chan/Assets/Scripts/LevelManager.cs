@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
@@ -11,12 +12,15 @@ public class LevelManager : MonoBehaviour
     public GameObject BreakableCube;
     public GameObject ggCube;
     public Transform playerPosition;
-    public MoveControl UnityChan;
+    public MoveControl unityChan;
 
     Thread tick;
     bool katsu;
+    bool C4;
 
     GameObject GO;
+    List<mapObject> explosives;
+    mapObject DeidaraCube;
 
     public enum CubesTypes
     {
@@ -27,7 +31,7 @@ public class LevelManager : MonoBehaviour
         explosive = 8,
         GG = 16
     }
-    public struct mapObject
+    public class mapObject
     {
         CubesTypes cubeType;
         GameObject cube;
@@ -56,14 +60,14 @@ public class LevelManager : MonoBehaviour
     }
 
     public static int level = 1;
-    public static mapObject[,,] map = new mapObject[7,21,7];
+    public static mapObject[,,] map = new mapObject[14,21,14];
     void Start()
     {
-        for(int i = 0; i < 7; i++)
+        for(int i = 0; i < 14; i++)
         {
             for (int j = 0; j < 21; j++)
             {
-                for(int k = 0; k < 7; k++)
+                for(int k = 0; k < 14; k++)
                 {
                     map[i,j,k] = new mapObject(0,null);
                 }
@@ -76,34 +80,77 @@ public class LevelManager : MonoBehaviour
                 InstantiateLevel1();
                 break;
         }
-    }
-    void FixedUpdate()
-    {
-        mapObject cube = UnityChan.CubeUnder(UnityChan.RoundingPosition());
 
-        if (UnityChan.machineStates == MoveControl.PlayerStates.idling)
+        tick = new Thread(explode);
+    }
+    void Update()
+    {
+        Debug.Log(unityChan.cubeBehind(unityChan.RoundingPosition()).getCube());
+        mapObject cube = unityChan.CubeUnder(unityChan.RoundingPosition());
+
+        if (cube.getCube() == null)
+        {
+            GameObject underBehind = unityChan.cubeBehind(unityChan.RoundingPosition()).getCube();
+            if (underBehind == null && unityChan.machineStates != MoveControl.PlayerStates.falling)
+            {
+                StopAllCoroutines();
+                unityChan.animator.SetBool("ArmsUp", false);
+                unityChan.animator.SetBool("ClimbUp", false);
+                StartCoroutine(unityChan.FallingRoutine());
+            }
+            
+            else if (underBehind != null && unityChan.machineStates != MoveControl.PlayerStates.climbing)
+            {
+                StopAllCoroutines();
+                unityChan.animator.SetBool("ClimbUp", true);
+            }
+        }
+
+        if (unityChan.machineStates == MoveControl.PlayerStates.idling)
         {
             if (cube.getCubeType() != 0)
             {
                 switch (cube.getCubeType())
                 {
                     case CubesTypes.explosive:
-                        tick = new Thread(explode);
-                        tick.Start();
-
-                        if (katsu)
+                        if (!tick.IsAlive)
                         {
-                            Destroy(cube.getCube());
+                            DeidaraCube = cube;
+                            tick = new Thread(explode);
+                            tick.Start();
                         }
                         break;
+                        
+                        
                 }
             }
-            else 
+
+            if (katsu && DeidaraCube.getCube() != null)
             {
+                Transform pos = DeidaraCube.getCube().transform;
+                mapObject[] adjacents = {unityChan.cubeLeft(pos),
+                            unityChan.cubeRight(pos),
+                            unityChan.cubeInFront(pos),
+                            unityChan.cubeBehind(pos)};
+
+                DeidaraCube.setCubeType(CubesTypes.anyBlock);
+                Destroy(DeidaraCube.getCube().gameObject);
+
+                explosives = ChainExplosion(adjacents, new List<mapObject>());
+                tick = new Thread(BigBang);
+                tick.Start();
+                C4 = true;
+                katsu = false;
+            }
+
+            else if(C4 && !tick.IsAlive)
+            {
+                for (int i = 0; i < explosives.Count; i++)
                 {
-                    StopAllCoroutines();
-                    StartCoroutine(UnityChan.FallingRoutine());
+                    Destroy(explosives[i].getCube().gameObject);
+                    Debug.Log("dmka");
                 }
+                C4 = false;
             }
         }
     }
@@ -142,13 +189,63 @@ public class LevelManager : MonoBehaviour
 
         GO = Instantiate(explosiveCube, new Vector3(1, 2, 0), Quaternion.identity);
         map[1, 2, 0] = new mapObject(CubesTypes.explosive, GO);
-        Instantiate(standardCube, new Vector3(0, 2, 0), Quaternion.identity);
-        map[0, 2, 0] = new mapObject(CubesTypes.standard, GO);
+        Instantiate(explosiveCube, new Vector3(0, 2, 0), Quaternion.identity);
+        map[0, 2, 0] = new mapObject(CubesTypes.explosive, GO);
 
     }
     void explode()
     {
         Thread.Sleep(3000);
         katsu = true;
+
+    }
+
+    void BigBang()
+    {
+        Thread.Sleep(3000);
+    }
+
+    List<mapObject> ChainExplosion(mapObject[] adjacents, List<mapObject> explosives)
+    {
+        for (int i = 0; i < adjacents.Length; i++)
+        {
+            try
+            {
+
+                Transform pos = adjacents[i].getCube().transform;
+
+                if (adjacents[i].getCubeType() == CubesTypes.explosive)
+                {
+                    adjacents[i].setCubeType(CubesTypes.anyBlock);
+                    explosives.Add(adjacents[i]);
+
+                    mapObject[] newAdjacents = {
+                        unityChan.cubeLeft(pos),
+                        unityChan.cubeRight(pos),
+                        unityChan.cubeInFront(pos),
+                        unityChan.cubeBehind(pos)
+                    };
+
+                    ChainExplosion(newAdjacents, explosives);
+                }
+
+                else if (adjacents[i].getCubeType() == CubesTypes.standard)
+                {
+                    adjacents[i].setCubeType(CubesTypes.breakable);
+                }
+
+                else if (adjacents[i].getCubeType() == CubesTypes.breakable)
+                {
+                    Destroy(adjacents[i].getCube().gameObject);
+                    adjacents[i].setCubeType(CubesTypes.anyBlock);
+                }
+
+            }
+            catch (NullReferenceException)
+            {
+            }
+        }
+        
+        return explosives;
     }
 }
