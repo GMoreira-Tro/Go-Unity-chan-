@@ -14,13 +14,8 @@ public class LevelManager : MonoBehaviour
     public Transform playerPosition;
     public MoveControl unityChan;
 
-    Thread tick;
-    bool katsu;
-    bool C4;
-
     GameObject GO;
     List<mapObject> explosives;
-    mapObject DeidaraCube;
 
     public enum CubesTypes
     {
@@ -29,7 +24,8 @@ public class LevelManager : MonoBehaviour
         rigid = 2,
         breakable = 4,
         explosive = 8,
-        GG = 16
+        GG = 16,
+        PhantomCube = 32
     }
     public class mapObject
     {
@@ -81,17 +77,17 @@ public class LevelManager : MonoBehaviour
                 break;
         }
 
-        tick = new Thread(explode);
     }
     void Update()
     {
-        Debug.Log(unityChan.cubeBehind(unityChan.RoundingPosition()).getCube());
+        Debug.Log(map[3, 3, 1].getCubeType());
         mapObject cube = unityChan.CubeUnder(unityChan.RoundingPosition());
 
         if (cube.getCube() == null)
         {
             GameObject underBehind = unityChan.cubeBehind(unityChan.RoundingPosition()).getCube();
-            if (underBehind == null && unityChan.machineStates != MoveControl.PlayerStates.falling)
+            if (underBehind == null && unityChan.machineStates != MoveControl.PlayerStates.falling &&
+                unityChan.machineStates != MoveControl.PlayerStates.climbing)
             {
                 StopAllCoroutines();
                 unityChan.animator.SetBool("ArmsUp", false);
@@ -101,8 +97,7 @@ public class LevelManager : MonoBehaviour
             
             else if (underBehind != null && unityChan.machineStates != MoveControl.PlayerStates.climbing)
             {
-                StopAllCoroutines();
-                unityChan.animator.SetBool("ClimbUp", true);
+                StartCoroutine(unityChan.ClimbingRoutine());
             }
         }
 
@@ -113,44 +108,11 @@ public class LevelManager : MonoBehaviour
                 switch (cube.getCubeType())
                 {
                     case CubesTypes.explosive:
-                        if (!tick.IsAlive)
-                        {
-                            DeidaraCube = cube;
-                            tick = new Thread(explode);
-                            tick.Start();
-                        }
+                        StartCoroutine(Explode(cube));
                         break;
                         
                         
                 }
-            }
-
-            if (katsu && DeidaraCube.getCube() != null)
-            {
-                Transform pos = DeidaraCube.getCube().transform;
-                mapObject[] adjacents = {unityChan.cubeLeft(pos),
-                            unityChan.cubeRight(pos),
-                            unityChan.cubeInFront(pos),
-                            unityChan.cubeBehind(pos)};
-
-                DeidaraCube.setCubeType(CubesTypes.anyBlock);
-                Destroy(DeidaraCube.getCube().gameObject);
-
-                explosives = ChainExplosion(adjacents, new List<mapObject>());
-                tick = new Thread(BigBang);
-                tick.Start();
-                C4 = true;
-                katsu = false;
-            }
-
-            else if(C4 && !tick.IsAlive)
-            {
-                for (int i = 0; i < explosives.Count; i++)
-                {
-                    Destroy(explosives[i].getCube().gameObject);
-                    Debug.Log("dmka");
-                }
-                C4 = false;
             }
         }
     }
@@ -159,8 +121,8 @@ public class LevelManager : MonoBehaviour
     {
         for (int i = 0; i < 7; i++)
         {
-            GO = Instantiate(standardCube, new Vector3(i, 0, 0), Quaternion.identity);
-            map[i, 0, 0] = new mapObject(CubesTypes.standard, GO);
+            GO = Instantiate(explosiveCube, new Vector3(i, 0, 0), Quaternion.identity);
+            map[i, 0, 0] = new mapObject(CubesTypes.explosive, GO);
         }
         for (int i = 0; i < 3; i++)
         {
@@ -189,20 +151,32 @@ public class LevelManager : MonoBehaviour
 
         GO = Instantiate(explosiveCube, new Vector3(1, 2, 0), Quaternion.identity);
         map[1, 2, 0] = new mapObject(CubesTypes.explosive, GO);
-        Instantiate(explosiveCube, new Vector3(0, 2, 0), Quaternion.identity);
-        map[0, 2, 0] = new mapObject(CubesTypes.explosive, GO);
+        Instantiate(standardCube, new Vector3(0, 2, 0), Quaternion.identity);
+        map[0, 2, 0] = new mapObject(CubesTypes.anyBlock, GO);
 
     }
-    void explode()
+    IEnumerator Explode(mapObject DeidaraCube)
     {
-        Thread.Sleep(3000);
-        katsu = true;
+        yield return new WaitForSeconds(3);
 
-    }
+        try
+        {
+            Vector3 pos = DeidaraCube.getCube().transform.position;
+            mapObject[] adjacents = {unityChan.cubeLeft(pos),
+                            unityChan.cubeRight(pos),
+                            unityChan.cubeInFront(pos),
+                            unityChan.cubeBehind(pos)};
 
-    void BigBang()
-    {
-        Thread.Sleep(3000);
+            DeidaraCube.setCubeType(CubesTypes.anyBlock);
+            Destroy(DeidaraCube.getCube().gameObject);
+
+            explosives = ChainExplosion(adjacents, new List<mapObject>());
+        }
+        catch (MissingReferenceException) { }
+
+        foreach(mapObject explosive in explosives) {
+            StartCoroutine(Explode(explosive));
+        }
     }
 
     List<mapObject> ChainExplosion(mapObject[] adjacents, List<mapObject> explosives)
@@ -212,21 +186,10 @@ public class LevelManager : MonoBehaviour
             try
             {
 
-                Transform pos = adjacents[i].getCube().transform;
-
                 if (adjacents[i].getCubeType() == CubesTypes.explosive)
                 {
                     adjacents[i].setCubeType(CubesTypes.anyBlock);
                     explosives.Add(adjacents[i]);
-
-                    mapObject[] newAdjacents = {
-                        unityChan.cubeLeft(pos),
-                        unityChan.cubeRight(pos),
-                        unityChan.cubeInFront(pos),
-                        unityChan.cubeBehind(pos)
-                    };
-
-                    ChainExplosion(newAdjacents, explosives);
                 }
 
                 else if (adjacents[i].getCubeType() == CubesTypes.standard)

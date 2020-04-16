@@ -63,11 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\BreakableCube.cs" />
-    <Compile Include="Assets\Scripts\ExplosiveCube.cs" />
-    <Compile Include="Assets\Scripts\FootColision.cs" />
     <Compile Include="Assets\Scripts\LevelManager.cs" />
-    <Compile Include="Assets\Scripts\RigidCube.cs" />
-    <Compile Include="Assets\Scripts\StandardCube.cs" />
     <Compile Include="Assets\Scripts\StopContinueMusic.cs" />
     <Compile Include="Assets\Scripts\UIGameControl.cs" />
     <Compile Include="Assets\Scripts\Utilities.cs" />

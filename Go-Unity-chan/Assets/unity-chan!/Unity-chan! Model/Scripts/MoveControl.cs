@@ -30,7 +30,7 @@ public class MoveControl : MonoBehaviour
     public PlayerStates machineStates;
 
     float physicalMovement;
-    float angleYDeg;
+    short angleYDeg;
     float angleYRad;
     bool canFlip = true;
     bool canRightFlip = true;
@@ -61,7 +61,8 @@ public class MoveControl : MonoBehaviour
         MoveNeck();
         if (Input.GetMouseButtonDown(1))
         {
-            transform.eulerAngles = new Vector3(0, 180, 0);
+            if(machineStates != PlayerStates.climbing)
+                transform.eulerAngles = new Vector3(0, 180, 0);
             cameraPitch = 30;
             cameraYaw = -180;
         }
@@ -87,7 +88,7 @@ public class MoveControl : MonoBehaviour
             
         if (machineStates == PlayerStates.idling)
         {
-            RoundingPosition();
+            transform.position = RoundingPosition();
             if (!animator.GetBool("Run") &&
             canFlip && Input.GetKey("w") || Input.GetKey("up") && cubeInFront(RoundingPosition()).getCube() == null) { 
                     animator.SetBool("Run", true);
@@ -114,8 +115,8 @@ public class MoveControl : MonoBehaviour
                 canRightFlip = true;
 
 
-            angleYDeg = transform.eulerAngles.y;
-            angleYRad = angleYDeg * Mathf.Deg2Rad;
+            angleYDeg = (short)transform.eulerAngles.y;
+            angleYRad = (angleYDeg * Mathf.Deg2Rad);
 
             if ((Input.GetKey("down") || Input.GetKey("s")) && canFlip)
             {
@@ -217,7 +218,7 @@ public class MoveControl : MonoBehaviour
         float timer = 0;
         float runningDuration = 0.5f;
         Vector3 initialPos = transform.position;
-        Vector3 finalPos = moveFront(transform);
+        Vector3 finalPos = moveFront(transform.position);
 
         while (timer < runningDuration)
         {
@@ -237,7 +238,7 @@ public class MoveControl : MonoBehaviour
     {
         animator.SetBool("ArmsUp", true);
         machineStates = PlayerStates.grabing;
-        GameObject cube = cubeInFront(transform).getCube();
+        GameObject cube = cubeInFront(transform.position).getCube();
 
         while(machineStates == PlayerStates.grabing)
         {
@@ -248,23 +249,25 @@ public class MoveControl : MonoBehaviour
             }
             else if(Input.GetKey("down") || Input.GetKey("s"))
             {
-                if(cubeBehind(transform).getCube() == null)
+                if(cubeBehind(RoundingPosition()).getCube() == null)
                 {
                     float timer = 0;
                     float pullingDuration = 0.5f;
                     Vector3 initialPos = transform.position;
-                    Vector3 finalPos = moveBack(transform);
-                    Vector3 cubeInitialPos = moveFront(transform);
+                    Vector3 finalPos = moveBack(transform.position);
+                    Vector3 cubeInitialPos = moveFront(transform.position);
 
-                    LevelManager.map[(int)cube.transform.position.x, (int)cube.transform.position.y, (int)cube.transform.position.z] = 
-                        new LevelManager.mapObject(0,null);
                     try
                     {
                             LevelManager.map[(int)transform.position.x, (int)transform.position.y,
-                    (int)-transform.position.z] = new LevelManager.mapObject(cubeInFront(transform).getCubeType(),
+                    (int)-transform.position.z] = new LevelManager.mapObject(cubeInFront(transform.position).getCubeType(),
                      cube);
+
                     }
                     catch (Exception) { }
+
+                    LevelManager.map[(int)cube.transform.position.x, (int)cube.transform.position.y, (int)cube.transform.position.z] =
+                        new LevelManager.mapObject(0, null);
 
                     while (timer < pullingDuration)
                     {
@@ -285,14 +288,14 @@ public class MoveControl : MonoBehaviour
 
             else if (Input.GetKey("up") || Input.GetKey("w"))
             {
-                if (cubeInFront(cube.transform).getCubeType() != LevelManager.CubesTypes.rigid)
+                if (cubeInFront(cube.transform.position).getCubeType() != LevelManager.CubesTypes.rigid)
                 {
                     List<GameObject> cubes = new List<GameObject>();
                     while (true)
                     {
                         cubes.Add(cube);
-                        LevelManager.mapObject behind = cubeBehind(cube.transform);
-                        LevelManager.mapObject inFront = cubeInFront(cube.transform);
+                        LevelManager.mapObject behind = cubeBehind(cube.transform.position);
+                        LevelManager.mapObject inFront = cubeInFront(cube.transform.position);
                         LevelManager.map[(int)cube.transform.position.x, (int)cube.transform.position.y, (int)cube.transform.position.z] =
                             new LevelManager.mapObject(behind.getCubeType(), behind.getCube());
 
@@ -307,7 +310,7 @@ public class MoveControl : MonoBehaviour
                     float timer = 0;
                     float pushingDuration = 0.5f;
                     Vector3 initialPos = transform.position;
-                    Vector3 finalPos = moveFront(transform);
+                    Vector3 finalPos = moveFront(transform.position);
 
                     while (timer < pushingDuration)
                     {
@@ -318,7 +321,7 @@ public class MoveControl : MonoBehaviour
                                 tim
                                 );
                         for(int i = 0; i < cubes.Count; i++) {
-                            LerpCube(cubes[i], cubes[i].transform.position, moveFront(cubes[i].transform), tim);
+                            LerpCube(cubes[i], cubes[i].transform.position, moveFront(cubes[i].transform.position), tim);
                         }
                         yield return null;
                     }
@@ -328,57 +331,90 @@ public class MoveControl : MonoBehaviour
         }
     }
 
-    public Transform RoundingPosition()
+    public IEnumerator ClimbingRoutine()
     {
-        transform.position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y),
+        animator.SetBool("ClimbUp", true);
+        machineStates = PlayerStates.climbing;
+
+        float timer = 0;
+        float runningDuration = 0.01f;
+        Vector3 initialPos = transform.position;
+        Vector3 finalPos;
+
+        if (angleYDeg == 180)
+            finalPos = new Vector3(transform.position.x, transform.position.y - 0.63f, transform.position.z);
+        else if (angleYDeg == 0)
+            finalPos = new Vector3(transform.position.x, transform.position.y - 0.3f, transform.position.z);
+        else if (angleYDeg == 270)
+            finalPos = new Vector3(transform.position.x + 0.35f, transform.position.y - 0.5f, transform.position.z);
+        else 
+            finalPos = new Vector3(transform.position.x - 0.35f, transform.position.y - 0.5f, transform.position.z);
+
+        while (timer < runningDuration)
+        {
+            timer += Time.deltaTime;
+            transform.position = Vector3.Lerp(initialPos,
+                    finalPos,
+                    timer / runningDuration
+                    );
+            yield return null;
+        }
+
+        //animator.SetBool("ClimbUp", false);
+        //machineStates = PlayerStates.idling;
+    }
+
+
+    public Vector3 RoundingPosition()
+    {
+        return new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y),
             Mathf.RoundToInt(transform.position.z));
-        return transform;
     }
 
-    public float XDirectionFront(Transform position)
+    public float XDirectionFront(Vector3 position)
     {
-        return position.position.x + Mathf.Sin(angleYRad);
+        return position.x + Mathf.Sin(angleYRad);
     }
 
-    public float ZDirectionFront(Transform position)
+    public float ZDirectionFront(Vector3 position)
     {
-        return position.position.z + Mathf.Cos(angleYRad);
+        return position.z + Mathf.Cos(angleYRad);
     }
 
-    public float XDirectionBack(Transform position)
+    public float XDirectionBack(Vector3 position)
     {
-        return position.position.x - Mathf.Sin(angleYRad);
+        return position.x - Mathf.Sin(angleYRad);
     }
 
-    public float ZDirectionBack(Transform position)
+    public float ZDirectionBack(Vector3 position)
     {
-        return position.position.z + Mathf.Cos(angleYRad);
+        return position.z - Mathf.Cos(angleYRad);
     }
 
-    public float XDirectionRight(Transform position)
+    public float XDirectionRight(Vector3 position)
     {
-        return position.position.x - Mathf.Cos(angleYRad);
+        return position.x - Mathf.Cos(angleYRad);
     }
 
-    public float XDirectionLeft(Transform position)
+    public float XDirectionLeft(Vector3 position)
     {
-        return position.position.x + Mathf.Cos(angleYRad);
+        return position.x + Mathf.Cos(angleYRad);
     }
-    public float ZDirectionLeft(Transform position)
+    public float ZDirectionLeft(Vector3 position)
     {
-        return position.position.z + Mathf.Sin(angleYRad);
-    }
-
-    public float ZDirectionRight(Transform position)
-    {
-        return position.position.z - Mathf.Sin(angleYRad);
+        return position.z + Mathf.Sin(angleYRad);
     }
 
-    public LevelManager.mapObject cubeInFront(Transform position)
+    public float ZDirectionRight(Vector3 position)
+    {
+        return position.z - Mathf.Sin(angleYRad);
+    }
+
+    public LevelManager.mapObject cubeInFront(Vector3 position)
     {
         try
         {
-            return LevelManager.map[(int)XDirectionFront(position), (int)position.position.y,
+            return LevelManager.map[(int)XDirectionFront(position), (int)position.y,
                 (int)-ZDirectionFront(position)];
         }
         catch (IndexOutOfRangeException)
@@ -387,11 +423,11 @@ public class MoveControl : MonoBehaviour
         }
     }
 
-    public LevelManager.mapObject cubeUpAndInFront(Transform position)
+    public LevelManager.mapObject cubeUpAndInFront(Vector3 position)
     {
         try
         {
-            return LevelManager.map[(int)XDirectionFront(position), (int)position.position.y+1,
+            return LevelManager.map[(int)XDirectionFront(position), (int)position.y+1,
                 (int)-ZDirectionFront(position)];
         }
         catch (IndexOutOfRangeException)
@@ -399,12 +435,12 @@ public class MoveControl : MonoBehaviour
             return new LevelManager.mapObject(0, null);
         }
     }
-    public LevelManager.mapObject cubeBehind(Transform position)
+    public LevelManager.mapObject cubeBehind(Vector3 position)
     {
         try
         {
             return LevelManager.map[(int)XDirectionBack(position), 
-                (int)position.position.y, (int)(-ZDirectionBack(position))];
+                (int)position.y, (int)-ZDirectionBack(position)];
         }
         catch (IndexOutOfRangeException)
         {
@@ -412,11 +448,11 @@ public class MoveControl : MonoBehaviour
         }
     }
 
-    public LevelManager.mapObject cubeRight(Transform position)
+    public LevelManager.mapObject cubeRight(Vector3 position)
     {
         try
         {
-            return LevelManager.map[(int)XDirectionRight(position), (int)position.position.y,
+            return LevelManager.map[(int)XDirectionRight(position), (int)position.y,
                 (int)ZDirectionRight(position)];
         }
         catch (IndexOutOfRangeException)
@@ -425,11 +461,11 @@ public class MoveControl : MonoBehaviour
         }
     }
 
-    public LevelManager.mapObject cubeLeft(Transform position)
+    public LevelManager.mapObject cubeLeft(Vector3 position)
     {
         try
         {
-            return LevelManager.map[(int)XDirectionLeft(position), (int)position.position.y,
+            return LevelManager.map[(int)XDirectionLeft(position), (int)position.y,
                 (int)ZDirectionLeft(position)];
         }
         catch (IndexOutOfRangeException)
@@ -438,7 +474,7 @@ public class MoveControl : MonoBehaviour
         }
     }
 
-    public LevelManager.mapObject CubeUnder(Transform reference)
+    public LevelManager.mapObject CubeUnder(Vector3 reference)
     {
         for (int i = 0; i < 7; i++)
         {
@@ -466,22 +502,22 @@ public class MoveControl : MonoBehaviour
         return new LevelManager.mapObject(0, null);
     }
 
-    public bool IsOnTheCube(int x, int y, int z, Transform reference)
+    public bool IsOnTheCube(int x, int y, int z, Vector3 reference)
     {
-        return  reference.position.x == x &&
-                        reference.position.y - 1 == y &&
-                        -reference.position.z == z;
+        return  reference.x == x &&
+                        reference.y - 1 == y &&
+                        -reference.z == z;
 
     }
 
-    Vector3 moveFront(Transform reference)
+    Vector3 moveFront(Vector3 reference)
     {
         return new Vector3(XDirectionFront(reference),
                     transform.position.y,
                     ZDirectionFront(reference)); ;
     }
 
-    Vector3 moveBack(Transform reference)
+    Vector3 moveBack(Vector3 reference)
     {
         return new Vector3(XDirectionBack(reference),
                     transform.position.y,
